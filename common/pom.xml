@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Maven POM for the common module.  This module contains shared types used by
+  the microservices such as the order DTO, activity interfaces and the
+  workflow interface.  It depends on the Temporal Java SDK but has no Spring
+  Boot dependencies because it is designed to be used in any module.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.example</groupId>
+        <artifactId>temporal-spring-example</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+    <artifactId>common</artifactId>
+    <name>common</name>
+    <dependencies>
+        <!-- Temporal Java SDK is required to define workflows and activities. -->
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-sdk</artifactId>
+            <version>${temporal-sdk.version}</version>
+        </dependency>
+        <!-- Jakarta annotations for validation (optional). -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <version>3.0.2</version>
+        </dependency>
+        <!-- Lombok simplifies POJO boilerplate.  Annotation processing must be
+             enabled in the IDE.  Not strictly necessary but convenient. -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.30</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

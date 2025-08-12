@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Root Maven build file for the Temporal Spring Boot example.  This file defines
+  a multi‑module build that contains a common library and three Spring Boot
+  microservices (order‑service, payment‑service and shipping‑service).  Each
+  microservice uses the Temporal Java SDK to orchestrate durable workflows or
+  implement Activities.  The parent declares dependency management that is
+  shared across modules and defines the list of modules.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>temporal-spring-example</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Temporal Spring Boot Example</name>
+    <description>Sample project demonstrating durable execution across microservices using Temporal and Spring Boot.</description>
+
+    <!-- Define versions for dependencies used by all modules.  Keeping the
+         versions centralised makes upgrades easier.  The Temporal Java SDK
+         currently uses the 1.30.x series and Spring Boot 3.2 is a stable
+         release line as of mid‑2025. -->
+    <properties>
+        <java.version>21</java.version>
+        <spring-boot.version>3.2.0</spring-boot.version>
+        <temporal-sdk.version>1.30.0</temporal-sdk.version>
+    </properties>
+
+    <modules>
+        <module>common</module>
+        <module>order-service</module>
+        <module>payment-service</module>
+        <module>shipping-service</module>
+    </modules>
+
+    <!-- Dependency management imports ensure consistent versions across modules. -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- The parent can define common plugins.  Each module inherits these
+         settings.  The spring‑boot‑maven plugin is used for building fat
+         jars for each microservice. -->
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>
