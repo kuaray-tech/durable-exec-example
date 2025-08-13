@@ -7,6 +7,7 @@ import com.example.common.workflows.OrderWorkflow;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Workflow;
+import org.slf4j.Logger;
 import java.time.Duration;
 
 /**
@@ -16,11 +17,16 @@ import java.time.Duration;
  * calls them as part of the workflow logic.  Any exceptions thrown from
  * Activities will cause the workflow to retry the Activity according to the
  * configured retry policy.
+ * 
+ * This implementation uses the Saga pattern to ensure data consistency across
+ * distributed services. If any step fails after a successful payment, the
+ * payment will be refunded as a compensating transaction.
  */
 public class OrderWorkflowImpl implements OrderWorkflow {
 
     private final PaymentActivity paymentActivity;
     private final ShippingActivity shippingActivity;
+    private final Logger logger = Workflow.getLogger(OrderWorkflowImpl.class);
 
     public OrderWorkflowImpl() {
         // Configure Activity options such as timeouts and retry policies.  These
@@ -45,12 +51,35 @@ public class OrderWorkflowImpl implements OrderWorkflow {
 
     @Override
     public void placeOrder(OrderDTO order) {
-        // Charge the customer.  If this fails the Activity will automatically
-        // retry according to the retry options specified above.
-        paymentActivity.debitPayment(order);
-
-        // Ship the goods.  Again, this call is durable and will be retried if
-        // necessary.
-        shippingActivity.shipOrder(order);
+        logger.info("=== SAGA START: Processing order {} with productId {} ===", order.getOrderId(), order.getProductId());
+        Long paymentId = null;
+        try {
+            // Step 1: Process payment
+            logger.info("SAGA Step 1: Processing payment for order {}", order.getOrderId());
+            paymentId = paymentActivity.debitPayment(order);
+            logger.info("SAGA Step 1 Complete: Payment processed successfully with ID: {}", paymentId);
+            
+            try {
+                // Step 2: Ship the order
+                logger.info("SAGA Step 2: Shipping order {}", order.getOrderId());
+                shippingActivity.shipOrder(order);
+                logger.info("SAGA Step 2 Complete: Order {} shipped successfully", order.getOrderId());
+            } catch (Exception e) {
+                // Compensating transaction: If shipping fails, refund the payment
+                logger.error("SAGA Compensation Triggered: Shipping failed for order {}. Error: {}", order.getOrderId(), e.getMessage());
+                if (paymentId != null) {
+                    logger.info("SAGA Compensation Action: Initiating refund for payment {}", paymentId);
+                    paymentActivity.refundPayment(paymentId);
+                    logger.info("SAGA Compensation Complete: Payment {} refunded due to shipping failure", paymentId);
+                }
+                throw e; // Re-throw to mark workflow as failed
+            }
+        } catch (Exception e) {
+            // Handle overall workflow failure
+            logger.error("SAGA Failed: Order workflow failed for order {}. Error: {}", order.getOrderId(), e.getMessage());
+            throw e;
+        }
+        
+        logger.info("=== SAGA COMPLETE: Order {} processed successfully ===", order.getOrderId());
     }
 }

@@ -4,11 +4,15 @@ import com.example.order.entity.Order;
 import com.example.order.repository.OrderRepository;
 import com.example.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST controller exposing endpoints to create and list orders.  Creating
@@ -19,6 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderController {
 
+    private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
     private final OrderService orderService;
     private final OrderRepository orderRepository;
 
@@ -31,9 +36,27 @@ public class OrderController {
      * @return the persisted order with its id
      */
     @PostMapping
-    public ResponseEntity<Order> createOrder(@Validated @RequestBody Order order) {
-        Order created = orderService.createOrder(order);
-        return ResponseEntity.ok(created);
+    public ResponseEntity<?> createOrder(@Validated @RequestBody Order order) {
+        try {
+            logger.info("Received order creation request: {}", order);
+            Order created = orderService.createOrder(order);
+            logger.info("Order created successfully: {}", created);
+            return ResponseEntity.ok(created);
+        } catch (Exception e) {
+            logger.error("Error creating order: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            errorResponse.put("errorType", e.getClass().getName());
+            
+            // Add root cause if available
+            Throwable rootCause = getRootCause(e);
+            if (rootCause != e) {
+                errorResponse.put("rootCause", rootCause.getMessage());
+                errorResponse.put("rootCauseType", rootCause.getClass().getName());
+            }
+            
+            return ResponseEntity.status(500).body(errorResponse);
+        }
     }
 
     /**
@@ -44,5 +67,19 @@ public class OrderController {
     @GetMapping
     public ResponseEntity<List<Order>> getOrders() {
         return ResponseEntity.ok(orderRepository.findAll());
+    }
+    
+    /**
+     * Gets the root cause of an exception
+     * 
+     * @param throwable the exception
+     * @return the root cause
+     */
+    private Throwable getRootCause(Throwable throwable) {
+        Throwable cause = throwable.getCause();
+        if (cause == null || cause == throwable) {
+            return throwable;
+        }
+        return getRootCause(cause);
     }
 }

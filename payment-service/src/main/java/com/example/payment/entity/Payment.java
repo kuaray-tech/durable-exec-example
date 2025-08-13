@@ -33,4 +33,16 @@ public class Payment {
     private Double amount;
 
     private String externalId;
+    
+    /**
+     * Flag indicating whether this payment has been refunded.
+     * Used for compensation in the Saga pattern.
+     */
+    private boolean refunded;
+    
+    /**
+     * External ID for the refund transaction.
+     * Only populated if the payment has been refunded.
+     */
+    private String refundId;
 }

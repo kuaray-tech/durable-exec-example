@@ -20,7 +20,18 @@ public interface PaymentActivity {
      * {@link io.temporal.common.RetryOptions}.
      *
      * @param order information about the order to charge
+     * @return the payment ID that can be used for refunds if needed
      */
     @ActivityMethod
-    void debitPayment(OrderDTO order);
+    Long debitPayment(OrderDTO order);
+    
+    /**
+     * Refunds a payment previously made. This is used as a compensating
+     * transaction when a subsequent step in the workflow fails and we need
+     * to maintain data consistency.
+     *
+     * @param paymentId the ID of the payment to refund
+     */
+    @ActivityMethod
+    void refundPayment(Long paymentId);
 }

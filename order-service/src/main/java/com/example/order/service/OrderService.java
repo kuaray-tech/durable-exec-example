@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+
 /**
  * OrderService encapsulates persistence of orders and submission of the
  * corresponding Temporal workflow.  When a new order is created via the
@@ -54,9 +56,12 @@ public class OrderService {
         // Map the entity to a DTO; this is deliberately simple.
         OrderDTO dto = new OrderDTO(saved.getId(), saved.getProductId(), saved.getPrice(), saved.getQuantity());
 
+        // Generate a unique workflow ID by appending a timestamp to avoid conflicts
+        String uniqueWorkflowId = workflowIdPrefix + "-" + saved.getId() + "-" + Instant.now().toEpochMilli();
+        
         // Build workflow options specifying a unique workflow ID and the task queue.
         WorkflowOptions options = WorkflowOptions.newBuilder()
-                .setWorkflowId(workflowIdPrefix + "-" + saved.getId())
+                .setWorkflowId(uniqueWorkflowId)
                 .setTaskQueue(orderTaskQueue)
                 .build();
 

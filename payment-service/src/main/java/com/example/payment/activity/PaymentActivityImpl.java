@@ -25,16 +25,33 @@ public class PaymentActivityImpl implements PaymentActivity {
     private final PaymentService paymentService;
 
     @Override
-    public void debitPayment(OrderDTO order) {
+    public Long debitPayment(OrderDTO order) {
         // Compute the total amount.  Use Activity.getExecutionContext().getInfo() to log progress.
         double amount = order.getPrice() * order.getQuantity();
-        logger.info("[PaymentActivity] Processing order {} for amount {}", order.getOrderId(), amount);
-        paymentService.debit(order.getOrderId(), order.getProductId(), amount);
+        logger.info("[SAGA Payment] Processing payment for order {} (productId: {}) for amount {}", 
+                order.getOrderId(), order.getProductId(), amount);
+        Long paymentId = paymentService.debit(order.getOrderId(), order.getProductId(), amount);
+        logger.info("[SAGA Payment] Successfully processed payment ID {} for order {}", 
+                paymentId, order.getOrderId());
         // Simulate a potential transient failure for demonstration.  You could
         // uncomment the following lines to randomly throw an exception and
         // observe automatic retries:
         // if (Math.random() < 0.2) {
         //     throw new RuntimeException("Simulated payment failure");
         // }
+        return paymentId;
+    }
+    
+    @Override
+    public void refundPayment(Long paymentId) {
+        logger.info("[SAGA Compensation] Starting refund process for payment {}", paymentId);
+        try {
+            paymentService.refund(paymentId);
+            logger.info("[SAGA Compensation] Successfully refunded payment {}", paymentId);
+        } catch (Exception e) {
+            logger.error("[SAGA Compensation] Failed to refund payment {}. Error: {}", 
+                    paymentId, e.getMessage());
+            throw e;
+        }
     }
 }
